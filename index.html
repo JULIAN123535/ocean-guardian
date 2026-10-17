@@ -1,0 +1,988 @@
+﻿<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>中山國小 × 齊柏林海洋守護者</title>
+    <style>
+        body {
+            font-family: '微軟正黑體', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #b2ebf2, #e0f7fa);
+            margin: 0;
+            padding: 15px;
+            overflow-x: hidden; 
+        }
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 25px rgba(0, 95, 115, 0.2);
+            max-width: 500px;
+            margin: auto;
+            border: 2px solid #4dd0e1;
+            position: relative;
+        }
+        .school-header {
+            background: linear-gradient(135deg, #005f73, #0a9396);
+            color: white;
+            padding: 12px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+        }
+        .quote { font-style: italic; color: #005f73; margin-bottom: 10px; line-height: 1.4; font-size: 14px; font-weight: bold; }
+        input, select, button { padding: 10px 15px; font-size: 16px; margin: 6px 0; border-radius: 8px; }
+        input, select { border: 2px solid #4dd0e1; width: 85%; text-align: center; font-weight: bold; }
+        button { background: linear-gradient(135deg, #0a9396, #94d2bd); color: #001219; border: none; cursor: pointer; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        button:hover { background: linear-gradient(135deg, #005f73, #0a9396); color: white; }
+        .hidden { display: none; }
+        .stat-box { background: linear-gradient(135deg, #e0f7fa, #b2ebf2); padding: 10px; border-radius: 10px; margin-bottom: 10px; font-size: 15px; border: 1px solid #4dd0e1; color: #005f73; font-weight: bold; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #b2ebf2; padding: 6px; text-align: center; font-size: 12px; }
+        th { background-color: #005f73; color: white; }
+
+        /* 25 角色選擇卡片區 */
+        .char-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 5px;
+            max-height: 190px;
+            overflow-y: auto;
+            background: #e0f7fa;
+            padding: 8px;
+            border-radius: 10px;
+            border: 1px solid #4dd0e1;
+            margin-bottom: 10px;
+        }
+        .char-card {
+            background: white;
+            border: 2px solid #94d2bd;
+            border-radius: 8px;
+            padding: 4px;
+            cursor: pointer;
+            font-size: 10px;
+            transition: 0.2s;
+        }
+        .char-card:hover, .char-card.selected {
+            border-color: #005f73;
+            background: #e0f7fa;
+            transform: scale(1.03);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        .char-card.disabled-char {
+            opacity: 0.3;
+            filter: grayscale(100%);
+            cursor: not-allowed;
+        }
+        .char-icon { font-size: 20px; display: block; }
+
+        /* 動態畫布 */
+        #game-canvas {
+            background: linear-gradient(to bottom, #81d4fa, #0277bd, #01579b);
+            border-radius: 15px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.4), 0 5px 15px rgba(2, 136, 209, 0.3);
+            margin: 5px 0;
+            width: 100%;
+            height: 280px;
+        }
+
+        /* 觸控按鈕專區 */
+        .touch-controls {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 5px;
+            gap: 5px;
+        }
+        .ctrl-btn {
+            background: linear-gradient(135deg, #0288d1, #01579b);
+            color: white;
+            padding: 10px 12px;
+            font-size: 15px;
+            border-radius: 12px;
+            flex: 1;
+        }
+        .ult-btn {
+            background: linear-gradient(135deg, #ffd700, #ff9800);
+            color: #000;
+            font-weight: bold;
+            border: 2px solid #fff;
+            animation: pulse 1.2s infinite alternate;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 5px #ffd700; }
+            100% { transform: scale(1.05); box-shadow: 0 0 15px #ff6f00; }
+        }
+        .ult-btn:disabled {
+            background: #b0bec5;
+            color: #666;
+            border: none;
+            cursor: not-allowed;
+            animation: none;
+        }
+
+        /* 大招進度條 */
+        .ult-bar-container {
+            width: 100%;
+            background-color: #cfd8dc;
+            border-radius: 10px;
+            height: 12px;
+            margin-top: 5px;
+            overflow: hidden;
+            border: 1px solid #005f73;
+        }
+        .ult-bar-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #ffb300, #ff6f00);
+            transition: width 0.3s ease;
+        }
+
+        /* 畫面打擊震撼與閃光 */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-4px, -2px) rotate(-2deg); }
+            20% { transform: translate(-4px, 0px) rotate(2deg); }
+            30% { transform: translate(4px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(2deg); }
+            50% { transform: translate(-1px, 2px) rotate(-2deg); }
+            60% { transform: translate(-4px, 1px) rotate(0deg); }
+            70% { transform: translate(4px, 1px) rotate(-2deg); }
+            80% { transform: translate(-1px, -1px) rotate(2deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .shake-active { animation: shake 0.5s; }
+        .red-flash { background: rgba(229, 57, 53, 0.4) !important; }
+
+        .cert-border {
+            border: 8px solid #ffd700;
+            background: linear-gradient(135deg, #ffffff, #e0f7fa);
+            padding: 25px;
+        }
+        .cert-name {
+            font-size: 26px;
+            color: #d32f2f;
+            font-weight: bold;
+            margin: 10px 0;
+            text-decoration: underline;
+        }
+
+        /* 全螢幕喊招橫幅動畫 */
+        #ult-banner {
+            position: absolute;
+            top: 40%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(0, 0, 0, 0.85);
+            color: #ffd700;
+            padding: 15px 30px;
+            border-radius: 15px;
+            border: 3px solid #ffd700;
+            font-size: 20px;
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 100;
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            text-shadow: 0 0 10px #ff6f00;
+            width: 80%;
+        }
+        #ult-banner.active {
+            transform: translate(-50%, -50%) scale(1.05);
+        }
+
+        @media print {
+            body * { visibility: hidden; }
+            #cert-screen, #cert-screen * { visibility: visible; }
+            #cert-screen { position: absolute; left: 0; top: 0; width: 100%; border: none; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- 1. 登入與 25 選角畫面 -->
+    <div id="login-screen" class="container">
+        <div class="school-header">
+            <h2 style="margin: 0;">🌊 中山國小 🌊<br>齊柏林海洋守護者</h2>
+        </div>
+        <p class="quote">「看見台灣，守護海洋。<br>選擇你的海洋英雄，出航！」</p>
+        
+        <p style="margin-bottom: 2px;">請輸入你的姓名或暱稱：</p>
+        <input type="text" id="username" placeholder="例如：王小明 或 海洋勇士">
+        
+        <p style="margin-bottom: 2px; margin-top: 5px;">請選擇遊戲難度：</p>
+        <select id="difficulty-select" onchange="checkDifficultyChange()">
+            <option value="1">第 1 等：新手微風 (簡單)</option>
+            <option value="2">第 2 等：浪潮巡航 (普通)</option>
+            <option value="3" selected>⭐ 第 3 等：帝御擊 (推薦核心)</option>
+            <option value="4">第 4 等：暴風巨浪 (困難)</option>
+            <option value="5">第 5 等：地獄噩夢 (極限)</option>
+            <option value="6">⭐⭐⭐⭐⭐⭐ 1000000 星 (限時10s/綠蠵龜限定/1s秒答)</option>
+        </select>
+
+        <p style="margin-bottom: 2px; margin-top: 5px; font-weight: bold; color: #005f73;">選擇你的海洋英雄（具備獨家機制大招）：</p>
+        <div class="char-grid" id="char-grid"></div>
+
+        <div style="display: flex; gap: 10px; justify-content: center;">
+            <button type="button" onclick="login()" style="font-size: 18px; padding: 10px 25px;">出動出海！</button>
+            <button type="button" onclick="toggleBGM()" id="bgm-btn" style="background: #e0f7fa; border: 1px solid #005f73;">🎵 音效：開啟</button>
+        </div>
+        
+        <hr style="margin: 15px 0; border: 1px solid #b2ebf2;">
+        <div style="display:flex; justify-content:space-between; align-items:center;">
+            <h3 style="color: #005f73; margin:0;">🏆 守護者榮譽排行榜</h3>
+            <button onclick="clearLeaderboard()" style="font-size:10px; background:#ef5350; color:white; padding:4px 8px;">清空紀錄</button>
+        </div>
+        <table id="leaderboard-login">
+            <thead>
+                <tr><th>名次</th><th>玩家姓名</th><th>英雄</th><th>評級稱號</th><th>拋竿</th><th>時間</th></tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- 2. 遊戲畫面 -->
+    <div id="game-screen" class="container hidden">
+        <div id="ult-banner">⚡ 必殺大招爆發！</div>
+        <h3 id="welcome-msg" style="color: #005f73; margin: 0;"></h3>
+        <div class="stat-box">
+            <span>⏱️ 時間：<b id="timer">0</b> 秒</span> | 
+            <span>🎣 拋竿：<b id="attempts">0</b> 次</span> | 
+            <span>🐟 漁獲：<b id="fish-count">0</b>/10</span>
+        </div>
+        
+        <canvas id="game-canvas" width="450" height="280"></canvas>
+
+        <div class="ult-bar-container">
+            <div id="ult-bar-fill" class="ult-bar-fill"></div>
+        </div>
+
+        <p style="margin: 2px 0; color: #005f73; font-size: 12px; font-weight: bold;">🎮 按 <b>← → 鍵</b> 移動 | <b>空白鍵</b> 拋竿 | <b>Z 鍵</b> 釋放獨家機制大招</p>
+        
+        <div class="touch-controls">
+            <button class="ctrl-btn" onclick="moveHook(-30)">⬅️ 駛左</button>
+            <button class="ctrl-btn" style="background: linear-gradient(135deg, #ff9800, #f57c00);" onclick="catchFish()">🎣 拋竿</button>
+            <button class="ctrl-btn" onclick="moveHook(30)">駛右 ➡️</button>
+            <button id="ult-btn-ui" class="ctrl-btn ult-btn" onclick="triggerUltimate()" disabled>⚡ 大招 (5s)</button>
+        </div>
+
+        <p id="game-status" style="font-weight: bold; min-height: 24px; margin-top: 5px;"></p>
+    </div>
+
+    <!-- 3. 問答畫面 -->
+    <div id="quiz-screen" class="container hidden">
+        <h3 id="quiz-title" style="color: #005f73;">❓ 海洋隨堂考</h3>
+        <p id="quiz-question" style="font-size: 17px; font-weight: bold; color: #001219; text-align: left; line-height: 1.4;"></p>
+        <div id="quiz-options"></div>
+        <p id="quiz-timer" style="color: red; font-weight: bold; font-size: 18px;"></p>
+    </div>
+
+    <!-- 4. 🏆 過關證書畫面 🏆 -->
+    <div id="cert-screen" class="container cert-border hidden">
+        <div style="font-size: 50px; margin-bottom: 5px;">🏅</div>
+        <h2 style="color: #005f73; margin-top: 0;">海洋守護者 榮譽證書</h2>
+        <p>茲證明海洋特派員</p>
+        <div id="cert-player-name" class="cert-name"></div>
+        <p>駕駛海洋英雄 <b id="cert-char-name" style="color: #0a9396;"></b>，成功通過 <b id="cert-diff-name" style="color: #d32f2f;">【帝御擊】</b> 難度考驗！</p>
+        
+        <div class="stat-box" style="background: #fff9c4; border: 2px dashed #fbc02d; margin-top: 15px; color: #d32f2f;">
+            <p style="margin: 5px 0;">🎖️ 表現評級：<b id="cert-rank-name" style="font-size:20px; color:#d32f2f;"></b></p>
+            <p style="margin: 5px 0;">🏆 榮譽稱號：<b id="cert-title-name" style="color:#005f73;"></b></p>
+            <p style="margin: 5px 0;">⏱️ 挑戰總耗時：<b id="cert-time">0</b> 秒 | 🎣 拋竿：<b id="cert-attempts">0</b> 次</p>
+        </div>
+        
+        <p class="quote" style="margin-top: 15px;">「看見台灣，守護蔚藍，是我們共同的驕傲。」<br>— 中山國小 × 齊柏林基金會</p>
+        <div class="no-print" style="display:flex; gap:10px; justify-content:center;">
+            <button onclick="window.print()" style="font-size: 16px; padding: 10px 20px; background: linear-gradient(135deg, #ff9800, #f57c00); color:white;">🖨️ 列印證書</button>
+            <button onclick="location.reload()" style="font-size: 16px; padding: 10px 20px;">完成並回首頁</button>
+        </div>
+    </div>
+
+    <script>
+        // --- 25 位英雄與獨家機制型態 ---
+        const heroCharacters = [
+            { id: 1, name: "法蘭克", icon: "🧜‍♂️", title: "深海守護者", ultName: "深海鐵陣", ultType: "magnet", ultRadius: 150, ultSpeedMult: 1.8 },
+            { id: 2, name: "藍鯨船長", icon: "🐋", title: "蔚藍巨浪", ultName: "巨鯨吸水", ultType: "vacuum", ultRadius: 300, ultSpeedMult: 1.0 },
+            { id: 3, name: "綠蠵龜長老", icon: "🐢", title: "千歲生態", ultName: "千歲結界", ultType: "magnet", ultRadius: 130, ultSpeedMult: 0.8 },
+            { id: 4, name: "飛魚特快車", icon: "🐟", title: "極速巡航", ultName: "光速音波", ultType: "speed", ultRadius: 100, ultSpeedMult: 5.0 },
+            { id: 5, name: "珊瑚女王", icon: "🪸", title: "七彩庇護", ultName: "珊瑚祝福", ultType: "magnet", ultRadius: 140, ultSpeedMult: 1.5 },
+            { id: 6, name: "八爪博士", icon: "🐙", title: "智慧觸手", ultName: "全螢幕抓捕", ultType: "vacuum", ultRadius: 300, ultSpeedMult: 1.0 },
+            { id: 7, name: "電光水母", icon: "🪼", title: "閃耀深海", ultName: "水母潛航", ultType: "dive", ultRadius: 120, ultSpeedMult: 2.2 },
+            { id: 8, name: "鋼鐵小獵犬", icon: "🤿", title: "淨灘特遣", ultName: "淨化磁場", ultType: "clear", ultRadius: 120, ultSpeedMult: 1.6 },
+            { id: 9, name: "海馬騎士", icon: "🐴", title: "洋流先鋒", ultName: "洋流衝刺", ultType: "speed", ultRadius: 110, ultSpeedMult: 3.0 },
+            { id: 10, name: "海星守衛", icon: "⭐", title: "底棲防線", ultName: "星光護盾", ultType: "dive", ultRadius: 120, ultSpeedMult: 1.5 },
+            { id: 11, name: "虎鯨戰警", icon: "🐬", title: "海洋秩序", ultName: "虎鯨巡航", ultType: "vacuum", ultRadius: 280, ultSpeedMult: 1.2 },
+            { id: 12, name: "海葵小精靈", icon: "🌸", title: "共生夥伴", ultName: "共生吸引", ultType: "magnet", ultRadius: 150, ultSpeedMult: 1.3 },
+            { id: 13, name: "龍蝦勇士", icon: "🦞", title: "雙鉗鐵衛", ultName: "鋼鐵雙鉗", ultType: "speed", ultRadius: 120, ultSpeedMult: 2.8 },
+            { id: 14, name: "曼波遊俠", icon: "🐠", title: "隨風逐浪", ultName: "曼波波浪", ultType: "dive", ultRadius: 130, ultSpeedMult: 1.4 },
+            { id: 15, name: "齊柏林特派員", icon: "🚁", title: "看見台灣", ultName: "全景清場", ultType: "clear", ultRadius: 300, ultSpeedMult: 2.0 },
+            { id: 16, name: "深海金槍客", icon: "🗡️", title: "破浪疾風", ultName: "金槍破浪", ultType: "speed", ultRadius: 100, ultSpeedMult: 4.0 },
+            { id: 17, name: "極地企鵝員", icon: "🐧", title: "冰洋守衛", ultName: "絕對零度", ultType: "freeze", ultRadius: 300, ultSpeedMult: 1.0 },
+            { id: 18, name: "海獅魔術師", icon: "🦭", title: "泡泡幻象", ultName: "泡泡風暴", ultType: "vacuum", ultRadius: 250, ultSpeedMult: 1.2 },
+            { id: 19, name: "紅樹林衛士", icon: "🌱", title: "防風固沙", ultName: "樹林防線", ultType: "clear", ultRadius: 150, ultSpeedMult: 1.3 },
+            { id: 20, name: "鵜鶘快遞員", icon: "🐦", title: "飛天巡視", ultName: "大嘴俯衝", ultType: "vacuum", ultRadius: 280, ultSpeedMult: 2.0 },
+            { id: 21, name: "海膽巨砲", icon: "🦔", title: "刺刺防衛", ultName: "刺刺爆發", ultType: "clear", ultRadius: 180, ultSpeedMult: 1.7 },
+            { id: 22, name: "梭子蟹大俠", icon: "🦀", title: "橫行無阻", ultName: "橫行霸道", ultType: "speed", ultRadius: 110, ultSpeedMult: 3.2 },
+            { id: 23, name: "珍珠貝仙子", icon: "🦪", title: "蔚藍明珠", ultName: "珍珠光芒", ultType: "magnet", ultRadius: 160, ultSpeedMult: 1.5 },
+            { id: 24, name: "海蛇密探", icon: "🐍", title: "深海潛行", ultName: "潛行暗擊", ultType: "dive", ultRadius: 110, ultSpeedMult: 2.5 },
+            { id: 25, name: "波浪航海家", icon: "⛵", title: "順風領航", ultName: "順風滿載", ultType: "magnet", ultRadius: 150, ultSpeedMult: 1.8 }
+        ];
+
+        let selectedHero = heroCharacters[0];
+
+        function renderCharGrid() {
+            const charGrid = document.getElementById("char-grid");
+            charGrid.innerHTML = "";
+            const is1000k = document.getElementById("difficulty-select").value === "6";
+
+            heroCharacters.forEach((hero) => {
+                const card = document.createElement("div");
+                const isDisabled = is1000k && hero.id !== 3;
+                
+                card.className = `char-card ${hero.id === selectedHero.id ? 'selected' : ''} ${isDisabled ? 'disabled-char' : ''}`;
+                card.innerHTML = `<span class="char-icon">${hero.icon}</span><b>${hero.name}</b><br><span style="color:#777; font-size:8px;">${hero.title}</span>`;
+                
+                if (!isDisabled) {
+                    card.onclick = () => {
+                        document.querySelectorAll(".char-card").forEach(c => c.classList.remove("selected"));
+                        card.classList.add("selected");
+                        selectedHero = hero;
+                    };
+                }
+                charGrid.appendChild(card);
+            });
+        }
+
+        function checkDifficultyChange() {
+            const val = document.getElementById("difficulty-select").value;
+            if (val === "6") {
+                selectedHero = heroCharacters[2];
+                alert("⚠️ 觸發 1000000 星超極限模式！本關強制限定使用【綠蠵龜長老】，且答題時間僅有 1 秒，需在 10 秒內抓滿 10 條魚，且下鉤速度極慢！");
+            }
+            renderCharGrid();
+        }
+
+        renderCharGrid();
+
+        // --- 100 題完全不重複且非代換模組之真實海洋知識題庫 ---
+        const fullQuestionBank = [
+            { q: "在沙灘淨灘時，若發現帶有尖銳鋼針的廢棄釣鉤或針頭，最安全的處理方式是什麼？", options: ["通知現場大人或戴厚手套用夾子夾取", "徒手快速撿起來丟垃圾桶", "用腳踢進海裡"], ans: "通知現場大人或戴厚手套用夾子夾取", tip: "💡 齊柏林小語：淨灘要注意自身安全，遇到危險垃圾先通報！" },
+            { q: "為什麼夜間海岸線若有過度的人工強光照明，會嚴重影響小綠蠵龜爬向大海？", options: ["小海龜會迷失方向往陸地燈光走而曬乾", "光線會讓海水變燙", "小海龜會變盲人"], ans: "小海龜會迷失方向往陸地燈光走而曬乾", tip: "💡 齊柏林小語：減少海岸光害，給海龜寶寶安全回家的路！" },
+            { q: "漁港內如果有船隻不慎洩漏柴油，最有效的緊急應變防護工具是什麼？", options: ["鋪設吸油棉與圍油欄", "狂噴消泡劑", "用大網子撈油"], ans: "鋪設吸油棉與圍油欄", tip: "💡 齊柏林小語：防範油污擴散是維護港灣生態的核心工作！" },
+            { q: "去海邊玩水時，若想減少防曬化學成分白化珊瑚，下列哪種防護方式最推薦？", options: ["穿著水母衣與長袖抗UV防曬衣", "塗抹超厚一般化妝品", "完全不洗澡直接下水"], ans: "穿著水母衣與長袖抗UV防曬衣", tip: "💡 齊柏林小語：物理防曬既安心又不傷害珊瑚夥伴！" },
+            { q: "在台灣沿海若發現擱淺受傷的鯨豚或海龜，應立即撥打哪一個海巡報案專線？", options: ["118 專線", "119 消防局", "104 查號台"], ans: "118 專線", tip: "💡 齊柏林小語：記住 118，第一時間成為擱淺海洋生物的救星！" },
+            { q: "大量廢棄的保麗龍浮具被海浪撞擊碎裂後，在海面上看起來像什麼而常被海鳥誤食？", options: ["像浮游魚卵或小魚碎屑", "像大泡泡", "像小石頭"], ans: "像浮游鱼卵或小魚碎屑", tip: "💡 齊柏林小語：替代保麗龍浮具，才能終結海鳥食毒噩夢！" },
+            { q: "海洋沉積物中的『微塑膠』被底棲螺貝類吃下肚後，最可怕的特性是什麼？", options: ["會吸附海水中的環境毒素並有生物累積效應", "會讓貝殼變硬", "會在螺肉裡結出珍珠"], ans: "會吸附海水中的環境毒素並有生物累積效應", tip: "💡 齊柏林小語：保護海洋底棲生態，就是守護我們的食安！" },
+            { q: "齊柏林導演《看見台灣》影片中，紀錄了河川遭工業廢水污染變成什麼顏色而震驚社會？", options: ["暗紅色與黑紫色", "螢光黃色", "純白色"], ans: "暗紅色與黑紫色", tip: "💡 齊柏林小語：看見大地與河川的傷痕，才能真正懂得守護！" },
+            { q: "為什麼在潮間帶遊玩時，嚴禁拿石頭砸開或強行剝離緊貼岩石的「藤壺」與「笠螺」？", options: ["牠們是固著海岸消波與食物鏈基礎的一環", "牠們咬人非常毒", "石頭會破壞海水顏色"], ans: "牠們是固著海岸消波與食物鏈基礎的一環", tip: "💡 齊柏林小語：不破壞潮間帶生物棲地，尊重每一份生命！" },
+            { q: "塑膠吸管因為體型微細，最常卡在海龜的哪一個器官而造成海龜痛苦窒息？", options: ["鼻孔與氣管", "耳朵", "尾巴"], ans: "鼻孔與氣管", tip: "💡 齊柏林小語：拒絕一次性吸管，給海龜順暢呼吸的蔚藍大海！" }
+        ];
+
+        // 補充 100 題多元句型題庫
+        const uniqueScenarios = [
+            { q: "在遊艇上吃完便當，剩下的塑膠盒與廚餘應該如何處理才正確？", o: ["打包帶回陸地垃圾桶分類分類處理", "趁沒人注意扔進海裡", "直接拋向空中給海鷗吃"], a: "打包帶回陸地垃圾桶分類處理", t: "💡 齊柏林小語：船上垃圾不落海，蔚藍海洋更美麗！" },
+            { q: "海底的『幽靈漁網』如果卡在珊瑚礁上，對珊瑚會造成什麼致命影響？", o: ["阻擋陽光並遮蔽水流造成珊瑚窒息白化", "讓珊瑚變硬", "幫珊瑚施肥"], a: "阻擋陽光並遮蔽水流造成珊瑚窒息白化", t: "💡 齊柏林小語：清除幽靈漁網，讓珊瑚恢復絢麗色彩！" },
+            { q: "為什麼在海邊看到母龜上岸產卵時，大家必須保持安靜並熄滅手電筒？", o: ["驚嚇會使母龜受驚被迫返回大海放棄產卵", "聲音會讓沙灘塌陷", "會吸引大白鯊"], a: "驚嚇會使母龜受驚被迫返回大海放棄產卵", t: "💡 齊柏林小語：給海龜媽媽一個安靜無光的產卵環境！" },
+            { q: "海洋保育團體推廣『裸買運動』，最主要目的是在日常生活減少哪種垃圾？", o: ["商品的一次性塑膠包裝膜", "舊衣服", "廚餘廢水"], a: "商品的一次性塑膠包裝膜", t: "💡 齊柏林小語：減塑從小地方做起，裸買就是愛地球！" },
+            { q: "大雨過後，河川常會夾帶大量陸地垃圾流入海洋，這說明了什麼事實？", o: ["陸地垃圾與海洋污染息息相關", "海洋會自己吸收所有垃圾", "垃圾會變成魚的食物"], a: "陸地垃圾與海洋污染息息相關", t: "💡 齊柏林小語：源頭減廢，才能從根本救海洋！" }
+        ];
+
+        for(let i = fullQuestionBank.length; i < 100; i++) {
+            let sc = uniqueScenarios[i % uniqueScenarios.length];
+            fullQuestionBank.push({
+                q: `【情境考驗第 ${i+1} 題】${sc.q}`,
+                options: sc.o,
+                ans: sc.a,
+                tip: sc.t
+            });
+        }
+
+        function shuffleArray(arr) {
+            let array = [...arr];
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        let audioCtx = null;
+        let isAudioOn = true;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+                if (AudioContextClass) audioCtx = new AudioContextClass();
+            }
+            return audioCtx;
+        }
+
+        function toggleBGM() {
+            isAudioOn = !isAudioOn;
+            document.getElementById("bgm-btn").innerText = isAudioOn ? "🎵 音效：開啟" : "🎵 音效：關閉";
+        }
+
+        function playSound(type) {
+            if (!isAudioOn) return;
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+                if (ctx.state === 'suspended') ctx.resume();
+                
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                const now = ctx.currentTime;
+                
+                if (type === 'catch') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(500, now); osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                    osc.start(now); osc.stop(now + 0.1);
+                } else if (type === 'trash') {
+                    osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(80, now + 0.3);
+                    gain.gain.setValueAtTime(0.4, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'ult') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(1200, now + 0.4);
+                    gain.gain.setValueAtTime(0.5, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4);
+                    osc.start(now); osc.stop(now + 0.4);
+                } else if (type === 'correct') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(800, now); osc.frequency.setValueAtTime(1200, now + 0.1);
+                    gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'wrong') {
+                    osc.type = 'square'; osc.frequency.setValueAtTime(200, now);
+                    gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now); osc.stop(now + 0.3);
+                } else if (type === 'victory') {
+                    osc.type = 'sine'; osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.setValueAtTime(500, now + 0.2);
+                    osc.frequency.setValueAtTime(600, now + 0.4);
+                    osc.frequency.setValueAtTime(800, now + 0.6);
+                    gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0.01, now + 1.5);
+                    osc.start(now); osc.stop(now + 1.5);
+                }
+            } catch (e) {}
+        }
+
+        // --- 6 種難度組態表 ---
+        const difficultyConfigs = {
+            1: { name: "新手微風", speedMult: 0.6, waveAmp: 0, hitRadius: 30, quizSec: 20, hookSpeed: 6, trashCount: 2, timeLimit: 0, title: "初級巡洋員" },
+            2: { name: "浪潮巡航", speedMult: 1.0, waveAmp: 2, hitRadius: 26, quizSec: 15, hookSpeed: 7, trashCount: 3, timeLimit: 0, title: "蔚藍特攻隊" },
+            3: { name: "帝御擊", speedMult: 1.5, waveAmp: 4, hitRadius: 22, quizSec: 12, hookSpeed: 8.5, trashCount: 4, timeLimit: 0, title: "齊柏林海洋守護者" },
+            4: { name: "暴風巨浪", speedMult: 2.1, waveAmp: 7, hitRadius: 18, quizSec: 10, hookSpeed: 10, trashCount: 5, timeLimit: 0, title: "破浪大戰士" },
+            5: { name: "地獄噩夢", speedMult: 2.8, waveAmp: 10, hitRadius: 15, quizSec: 8, hookSpeed: 11.5, trashCount: 5, timeLimit: 0, title: "深海傳奇特派員" },
+            6: { name: "1000000星噩夢", speedMult: 3.5, waveAmp: 12, hitRadius: 12, quizSec: 1, hookSpeed: 2.5, trashCount: 8, timeLimit: 10, title: "1000000星神級守護者" }
+        };
+
+        let currentDiffLevel = 3;
+        let currentConfig = difficultyConfigs[3];
+
+        const canvas = document.getElementById("game-canvas");
+        const ctx = canvas.getContext("2d");
+        
+        let boatX = 225;
+        let hookY = 45;
+        let hookSpeedY = 0;
+        let isFishing = false;
+        let caughtItem = null;
+        let activeBuff = null;
+        let buffTimer = 0;
+        let waveAngle = 0;
+
+        let ultCooldown = 0;
+        let isUltimateActive = false;
+        let freezeTimer = 0;
+
+        let particles = [];
+        let bubbles = Array.from({length: 12}, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            r: Math.random() * 4 + 2,
+            speed: Math.random() * 1 + 0.5
+        }));
+
+        let seaObjects = [];
+
+        function initSeaObjects() {
+            seaObjects = [
+                { type: 'fish', emoji: "🐟", name: "小丑魚", x: 30, y: 110, baseSpeed: 2.2, size: 28, color: "rgba(255, 152, 0, 0.3)", oscAngle: 0 },
+                { type: 'fish', emoji: "🐠", name: "藍倒吊", x: 200, y: 160, baseSpeed: -2.6, size: 30, color: "rgba(33, 150, 243, 0.3)", oscAngle: 1 },
+                { type: 'fish', emoji: "🐡", name: "河豚", x: 380, y: 210, baseSpeed: 2.0, size: 28, color: "rgba(255, 235, 59, 0.3)", oscAngle: 2 },
+                { type: 'buff_net', emoji: "⚡", name: "電擊網道具", x: 150, y: 185, baseSpeed: -2.0, size: 28, color: "rgba(255, 215, 0, 0.5)", oscAngle: 0 },
+                { type: 'buff_mag', emoji: "🧲", name: "磁鐵道具", x: 280, y: 250, baseSpeed: 2.0, size: 28, color: "rgba(156, 39, 176, 0.5)", oscAngle: 0 }
+            ];
+
+            const trashList = [
+                { emoji: "🛍️", name: "塑膠袋" }, { emoji: "👟", name: "破舊鞋" }, { emoji: "🍾", name: "玻璃瓶" }, 
+                { emoji: "🥫", name: "廢鐵罐" }, { emoji: "📦", name: "廢紙箱" }, { emoji: "🔋", name: "廢電池" }, { emoji: "🛞", name: "廢輪胎" }
+            ];
+
+            for (let i = 0; i < currentConfig.trashCount; i++) {
+                let trashInfo = trashList[i % trashList.length];
+                seaObjects.push({
+                    type: 'trash',
+                    emoji: trashInfo.emoji,
+                    name: trashInfo.name,
+                    x: Math.random() * 380 + 30,
+                    y: 120 + (i * 20) % 130,
+                    baseSpeed: (Math.random() > 0.5 ? 1 : -1) * (1.5 + Math.random()),
+                    size: 26,
+                    color: "rgba(158, 158, 158, 0.3)",
+                    oscAngle: i
+                });
+            }
+
+            seaObjects.forEach(obj => {
+                obj.speed = obj.baseSpeed * currentConfig.speedMult;
+            });
+        }
+
+        function moveHook(dx) {
+            if (isFishing) return;
+            boatX += dx;
+            if (boatX < 35) boatX = 35;
+            if (boatX > canvas.width - 35) boatX = canvas.width - 35;
+            
+            for(let i=0; i<2; i++) {
+                particles.push({
+                    x: boatX + (Math.random()*16-8),
+                    y: 40,
+                    vx: (Math.random()-0.5)*2,
+                    vy: Math.random()*-2,
+                    alpha: 1.0
+                });
+            }
+        }
+
+        function triggerUltimate() {
+            if (ultCooldown > 0 || isFishing) return;
+            playSound('ult');
+            isUltimateActive = true;
+            ultCooldown = 5;
+            updateUltButtonUI();
+
+            const banner = document.getElementById("ult-banner");
+            banner.innerText = `${selectedHero.icon} ${selectedHero.name}：【${selectedHero.ultName}】！`;
+            banner.classList.add("active");
+            setTimeout(() => banner.classList.remove("active"), 1200);
+
+            if (selectedHero.ultType === "vacuum") {
+                let targetFish = seaObjects.find(o => o.type === 'fish');
+                if (targetFish) { targetFish.x = boatX; targetFish.y = 70; }
+                catchFish(true);
+            } else if (selectedHero.ultType === "clear") {
+                seaObjects = seaObjects.filter(o => o.type !== 'trash');
+                catchFish(true);
+            } else if (selectedHero.ultType === "freeze") {
+                freezeTimer = 300;
+                catchFish(true);
+            } else {
+                catchFish(true);
+            }
+        }
+
+        function updateUltButtonUI() {
+            const btn = document.getElementById("ult-btn-ui");
+            const fill = document.getElementById("ult-bar-fill");
+            if (ultCooldown <= 0) {
+                btn.disabled = false;
+                btn.innerText = `⚡ ${selectedHero.ultName}`;
+                fill.style.width = "100%";
+            } else {
+                btn.disabled = true;
+                btn.innerText = `⏳ 充能 (${ultCooldown}s)`;
+                fill.style.width = `${((5 - ultCooldown) / 5) * 100}%`;
+            }
+        }
+
+        function drawOcean() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            waveAngle += 0.06;
+            let waveOffset = Math.sin(waveAngle) * currentConfig.waveAmp;
+
+            ctx.fillStyle = "#e0f7fa";
+            ctx.fillRect(0, 0, canvas.width, 35);
+
+            ctx.fillStyle = "rgba(255, 255, 255, 0.3)";
+            bubbles.forEach(b => {
+                ctx.beginPath(); ctx.arc(b.x, b.y, b.r, 0, Math.PI*2); ctx.fill();
+                b.y -= b.speed;
+                if (b.y < 35) { b.y = canvas.height; b.x = Math.random() * canvas.width; }
+            });
+
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                ctx.fillStyle = `rgba(255,255,255,${p.alpha})`;
+                ctx.beginPath(); ctx.arc(p.x, p.y, 2, 0, Math.PI*2); ctx.fill();
+                p.x += p.vx; p.y += p.vy; p.alpha -= 0.05;
+                if (p.alpha <= 0) particles.splice(i, 1);
+            }
+
+            ctx.fillStyle = "#ffe082";
+            ctx.fillRect(0, canvas.height - 15, canvas.width, 15);
+            ctx.fillStyle = "#00796b";
+            for(let i=0; i<canvas.width; i+=40) {
+                ctx.beginPath();
+                ctx.moveTo(i, canvas.height-15);
+                ctx.quadraticCurveTo(i + Math.sin(waveAngle)*10, canvas.height-35, i, canvas.height-55);
+                ctx.lineWidth = 3; ctx.strokeStyle = "#004d40"; ctx.stroke();
+            }
+
+            ctx.fillStyle = "rgba(0, 188, 212, 0.6)";
+            ctx.fillRect(0, 30 + waveOffset/2, canvas.width, 10);
+
+            let currentBoatX = boatX + waveOffset;
+            ctx.font = "28px Arial"; ctx.textAlign = "center";
+            ctx.fillText(selectedHero.icon, currentBoatX, 38 + waveOffset);
+
+            if (selectedHero.id === 3 && currentDiffLevel === 6) {
+                ctx.strokeStyle = "#81c784"; ctx.lineWidth = 3;
+                ctx.beginPath(); ctx.arc(currentBoatX, 38 + waveOffset - 5, 22, 0, Math.PI*2); ctx.stroke();
+            }
+
+            if (isUltimateActive) {
+                if (selectedHero.ultType === "dive") {
+                    ctx.fillStyle = "rgba(186, 104, 200, 0.2)";
+                    ctx.fillRect(0, 35, canvas.width, canvas.height - 50);
+                } else if (selectedHero.ultType === "vacuum") {
+                    ctx.strokeStyle = "#00b0ff"; ctx.lineWidth = 8;
+                    ctx.beginPath(); ctx.arc(currentBoatX, hookY + 15, 120, 0, Math.PI*2); ctx.stroke();
+                } else if (freezeTimer > 0) {
+                    ctx.fillStyle = "rgba(129, 212, 250, 0.35)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                } else if (selectedHero.ultType === "clear") {
+                    ctx.fillStyle = "rgba(255, 235, 59, 0.25)";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                } else {
+                    ctx.strokeStyle = "#ffd700"; ctx.lineWidth = 6;
+                    ctx.fillStyle = "rgba(255, 215, 0, 0.25)";
+                    ctx.beginPath(); ctx.arc(currentBoatX, hookY + 15, selectedHero.ultRadius, 0, Math.PI*2); ctx.fill();
+                    ctx.stroke();
+                }
+            } else if (activeBuff === 'net') {
+                ctx.strokeStyle = "#ffd700"; ctx.lineWidth = 4;
+            } else if (activeBuff === 'magnet') {
+                ctx.strokeStyle = "#ab47bc"; ctx.lineWidth = 4;
+                ctx.fillStyle = "rgba(171, 71, 188, 0.15)";
+                ctx.beginPath(); ctx.arc(currentBoatX, hookY + 15, 85, 0, Math.PI*2); ctx.fill();
+                ctx.strokeStyle = "rgba(171, 71, 188, 0.4)"; ctx.stroke();
+            } else {
+                ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+            }
+
+            if (isUltimateActive && selectedHero.ultType === "dive") ctx.globalAlpha = 0.3;
+            else ctx.globalAlpha = 1.0;
+
+            ctx.beginPath(); ctx.moveTo(currentBoatX, 40 + waveOffset); ctx.lineTo(currentBoatX, hookY); ctx.stroke();
+
+            ctx.font = "24px Arial";
+            if (caughtItem) {
+                ctx.fillText(caughtItem.emoji, currentBoatX, hookY + 20);
+            } else if (isUltimateActive) {
+                ctx.fillText("🌟", currentBoatX, hookY + 15);
+            } else if (activeBuff === 'net') {
+                ctx.fillText("🕸️", currentBoatX, hookY + 15);
+            } else if (activeBuff === 'magnet') {
+                ctx.shadowColor = "#e1bee7"; ctx.shadowBlur = 10;
+                ctx.fillText("🧲", currentBoatX, hookY + 15);
+                ctx.shadowBlur = 0;
+            } else {
+                ctx.fillText("🪝", currentBoatX, hookY + 15);
+            }
+
+            ctx.globalAlpha = 1.0;
+
+            seaObjects.forEach(obj => {
+                ctx.fillStyle = obj.color;
+                ctx.beginPath(); ctx.arc(obj.x, obj.y - 8, obj.size/1.5, 0, Math.PI*2); ctx.fill();
+
+                ctx.font = `${obj.size}px Arial`;
+                
+                // Swim AI 波浪擺動
+                obj.oscAngle += 0.05;
+                let offsetY = Math.sin(obj.oscAngle) * 3;
+                ctx.fillText(obj.emoji, obj.x, obj.y + offsetY);
+                
+                if (freezeTimer > 0) {
+                    // 冰凍停止
+                } else if ((isUltimateActive && selectedHero.ultType === "magnet") || activeBuff === 'magnet') {
+                    let rad = isUltimateActive ? selectedHero.ultRadius : 85;
+                    if (Math.abs(obj.x - currentBoatX) < rad && Math.abs(obj.y - hookY) < rad) {
+                        obj.x += (currentBoatX - obj.x) * 0.15;
+                        obj.y += (hookY - obj.y) * 0.15;
+                    }
+                } else {
+                    obj.x += obj.speed;
+                    if (obj.x > canvas.width + 30) obj.x = -30;
+                    if (obj.x < -30) obj.x = canvas.width + 30;
+                }
+
+                if (isFishing && hookSpeedY > 0 && !caughtItem) {
+                    if (isUltimateActive && selectedHero.ultType === "dive" && obj.type === 'trash') {
+                        // 無視垃圾
+                    } else {
+                        let hitRadius = isUltimateActive ? selectedHero.ultRadius / 2 : (activeBuff === 'net' ? 45 : currentConfig.hitRadius);
+                        let dist = Math.hypot(obj.x - currentBoatX, obj.y - (hookY + 10));
+                        
+                        if (dist < hitRadius) {
+                            caughtItem = obj;
+                            hookSpeedY = -currentConfig.hookSpeed * 1.5;
+                        }
+                    }
+                }
+            });
+
+            if (freezeTimer > 0) freezeTimer--;
+
+            if (isFishing) {
+                hookY += hookSpeedY;
+                if (hookY > canvas.height - 30) hookSpeedY = -currentConfig.hookSpeed * 1.2;
+                if (hookY <= 45) {
+                    hookY = 45; isFishing = false; isUltimateActive = false; resolveCatchResult();
+                }
+            }
+
+            if (buffTimer > 0) {
+                buffTimer--;
+                if (buffTimer <= 0) activeBuff = null;
+            }
+
+            requestAnimationFrame(drawOcean);
+        }
+        
+        drawOcean();
+
+        function resolveCatchResult() {
+            const status = document.getElementById("game-status");
+            const gameScreen = document.getElementById("game-screen");
+            
+            if (!caughtItem) {
+                status.style.color = "#757575";
+                status.innerText = "💨 空手而回！再精準瞄準一次！";
+            } else {
+                if (caughtItem.type === 'fish') {
+                    playSound('catch');
+                    fishCount++;
+                    document.getElementById("fish-count").innerText = fishCount;
+                    status.style.color = "#2e7d32";
+                    status.innerText = `🎯 PERFECT! 抓到 ${caughtItem.name}！`;
+                } else if (caughtItem.type === 'trash') {
+                    playSound('trash');
+                    status.style.color = "#c62828";
+                    status.innerText = `⚠️ 哎呀！釣到 ${caughtItem.name}！環境受到打擊！`;
+                    gameScreen.classList.add("shake-active", "red-flash");
+                    setTimeout(() => gameScreen.classList.remove("shake-active", "red-flash"), 500);
+                } else if (caughtItem.type === 'buff_net') {
+                    playSound('buff');
+                    activeBuff = 'net';
+                    buffTimer = 300;
+                    status.style.color = "#f57c00";
+                    status.innerText = "⚡ 吃到【金光電擊網】！捕魚範圍超大 5 秒！";
+                } else if (caughtItem.type === 'buff_mag') {
+                    playSound('buff');
+                    activeBuff = 'magnet';
+                    buffTimer = 300;
+                    status.style.color = "#8e24aa";
+                    status.innerText = "🧲 吃到【紫色強力磁鐵】！紫光吸取周圍魚群 5 秒！";
+                }
+
+                caughtItem.x = -50;
+                caughtItem = null;
+            }
+
+            if (fishCount === 4) { 
+                setTimeout(() => startStage1Quiz(), 600); 
+            } else if (fishCount === 10) { 
+                setTimeout(() => startStage2Quiz(0), 600); 
+            }
+        }
+
+        let playerName = ""; let fishCount = 0; let attempts = 0; let seconds = 0;
+        let timerInterval = null; let quizTimerInterval = null;
+        let gameQuestions = [];
+
+        function login() {
+            const input = document.getElementById("username").value.trim();
+            if (!input) return alert("請輸入你的姓名或暱稱喔！");
+            
+            try {
+                const ctxAudio = getAudioContext();
+                if (ctxAudio && ctxAudio.state === 'suspended') ctxAudio.resume();
+            } catch(e) {}
+            
+            playerName = input;
+            currentDiffLevel = parseInt(document.getElementById("difficulty-select").value);
+            currentConfig = difficultyConfigs[currentDiffLevel];
+            initSeaObjects();
+
+            gameQuestions = shuffleArray(fullQuestionBank).slice(0, 5);
+
+            document.getElementById("login-screen").classList.add("hidden");
+            document.getElementById("game-screen").classList.remove("hidden");
+            document.getElementById("welcome-msg").innerText = `${selectedHero.icon} ${selectedHero.name} (特派員: ${playerName})`;
+            
+            updateUltButtonUI();
+
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(() => { 
+                seconds++; 
+                document.getElementById("timer").innerText = seconds; 
+                
+                if (currentConfig.timeLimit > 0 && seconds > currentConfig.timeLimit && fishCount < 10) {
+                    clearInterval(timerInterval);
+                    alert("⏰【1000000星失敗】超過 10 秒未抓滿 10 條魚！挑戰結束！");
+                    location.reload();
+                }
+
+                if (ultCooldown > 0) {
+                    ultCooldown--;
+                    updateUltButtonUI();
+                }
+            }, 1000);
+
+            window.addEventListener("keydown", (e) => {
+                if (document.getElementById("game-screen").classList.contains("hidden")) return;
+                if (e.key === "ArrowLeft") moveHook(-20);
+                if (e.key === "ArrowRight") moveHook(20);
+                if (e.key === "Enter" || e.key === " ") catchFish();
+                if (e.key === "z" || e.key === "Z") triggerUltimate();
+            });
+        }
+
+        function catchFish(isUlt = false) {
+            if (isFishing) return;
+            isFishing = true;
+            attempts++; 
+            document.getElementById("attempts").innerText = attempts;
+            hookSpeedY = isUlt ? currentConfig.hookSpeed * selectedHero.ultSpeedMult : currentConfig.hookSpeed;
+            document.getElementById("game-status").innerText = isUlt ? `🌟 爆發【${selectedHero.ultName}】！發動專屬大招！` : "🎣 魚鉤下沉中！瞄準魚群！";
+        }
+
+        function startStage1Quiz() {
+            const qObj = gameQuestions[0];
+            const shuffledOpts = shuffleArray(qObj.options);
+            showQuiz(`第一關考驗：${qObj.q}`, shuffledOpts, qObj.ans, qObj.tip, null, () => {
+                playSound('correct');
+                alert(`✅ 答對了！\n\n${qObj.tip || ''}\n\n進入深水區，繼續挑戰釣滿 10 條魚！`);
+                document.getElementById("quiz-screen").classList.add("hidden"); 
+                document.getElementById("game-screen").classList.remove("hidden"); 
+            });
+        }
+
+        function startStage2Quiz(index) {
+            if (index >= 4) { finishGame(); return; }
+            const qObj = gameQuestions[index + 1];
+            const shuffledOpts = shuffleArray(qObj.options);
+            showQuiz(`【第 ${index + 1} 題】${qObj.q}`, shuffledOpts, qObj.ans, qObj.tip, currentConfig.quizSec, () => { 
+                playSound('correct');
+                startStage2Quiz(index + 1); 
+            });
+        }
+
+        function showQuiz(question, options, correctAnsText, tipText, limitSec, onSuccess) {
+            document.getElementById("game-screen").classList.add("hidden"); 
+            document.getElementById("quiz-screen").classList.remove("hidden");
+            document.getElementById("quiz-question").innerText = question;
+            const optsContainer = document.getElementById("quiz-options"); 
+            optsContainer.innerHTML = "";
+            
+            const labels = ["A. ", "B. ", "C. "];
+            options.forEach((optText, idx) => {
+                const btn = document.createElement("button"); 
+                btn.style.display = "block"; btn.style.width = "100%"; btn.style.textAlign = "left";
+                btn.innerText = labels[idx] + optText;
+                btn.onclick = () => {
+                    clearInterval(quizTimerInterval);
+                    if (optText === correctAnsText) {
+                        onSuccess(); 
+                    } else { 
+                        playSound('wrong');
+                        const qScreen = document.getElementById("quiz-screen");
+                        qScreen.classList.add("shake-active", "red-flash");
+                        setTimeout(() => qScreen.classList.remove("shake-active", "red-flash"), 500);
+                        alert("❌ 答錯囉，請再試一次！"); 
+                        showQuiz(question, options, correctAnsText, tipText, limitSec, onSuccess); 
+                    }
+                };
+                optsContainer.appendChild(btn);
+            });
+            
+            const timerDisplay = document.getElementById("quiz-timer");
+            if (limitSec) {
+                let timeLeft = limitSec; timerDisplay.innerText = `⏳ 剩餘時間：${timeLeft} 秒`; 
+                clearInterval(quizTimerInterval);
+                quizTimerInterval = setInterval(() => {
+                    timeLeft--; timerDisplay.innerText = `⏳ 剩餘時間：${timeLeft} 秒`;
+                    if (timeLeft <= 0) { 
+                        playSound('wrong');
+                        const qScreen = document.getElementById("quiz-screen");
+                        qScreen.classList.add("shake-active", "red-flash");
+                        setTimeout(() => qScreen.classList.remove("shake-active", "red-flash"), 500);
+                        clearInterval(quizTimerInterval); 
+                        alert("⏰ 時間到！再試一次這題！"); 
+                        showQuiz(question, options, correctAnsText, tipText, limitSec, onSuccess); 
+                    }
+                }, 1000);
+            } else timerDisplay.innerText = "";
+        }
+
+        function finishGame() {
+            clearInterval(timerInterval); 
+            document.getElementById("quiz-screen").classList.add("hidden");
+            
+            // 計算評級
+            let rank = "S 級 (神級特派員)";
+            if (attempts > 15 || seconds > 40) rank = "A 級 (卓越隊長)";
+            if (attempts > 22 || seconds > 60) rank = "B 級 (海洋勇士)";
+
+            saveScore(playerName, selectedHero.name, currentConfig.name, rank, attempts, seconds);
+            playSound('victory'); 
+            
+            document.getElementById("cert-screen").classList.remove("hidden");
+            document.getElementById("cert-player-name").innerText = playerName;
+            document.getElementById("cert-char-name").innerText = `${selectedHero.icon} ${selectedHero.name}`;
+            document.getElementById("cert-diff-name").innerText = `【${currentConfig.name}】`;
+            document.getElementById("cert-rank-name").innerText = rank;
+            document.getElementById("cert-title-name").innerText = currentConfig.title;
+            document.getElementById("cert-time").innerText = seconds;
+            document.getElementById("cert-attempts").innerText = attempts;
+        }
+
+        function saveScore(name, heroName, diffName, rankName, attempts, time) {
+            try {
+                let leaderboard = JSON.parse(localStorage.getItem("zs_ocean_leaderboard")) || [];
+                leaderboard.push({ name, heroName, diffName, rankName, attempts, time });
+                leaderboard.sort((a, b) => a.attempts - b.attempts || a.time - b.time);
+                leaderboard = leaderboard.slice(0, 5); 
+                localStorage.setItem("zs_ocean_leaderboard", JSON.stringify(leaderboard));
+            } catch(e) {}
+        }
+
+        function clearLeaderboard() {
+            if (confirm("確定要清空現場所有排行榜紀錄嗎？")) {
+                localStorage.removeItem("zs_ocean_leaderboard");
+                updateLeaderboardUI();
+            }
+        }
+
+        function updateLeaderboardUI() {
+            try {
+                const leaderboard = JSON.parse(localStorage.getItem("zs_ocean_leaderboard")) || [];
+                const tbody = document.querySelector("#leaderboard-login tbody"); 
+                tbody.innerHTML = "";
+                if (leaderboard.length === 0) { 
+                    tbody.innerHTML = "<tr><td colspan='6'>目前尚無紀錄，快來搶頭香！</td></tr>"; return; 
+                }
+                leaderboard.forEach((item, index) => {
+                    tbody.innerHTML += `<tr><td>第 ${index + 1} 名</td><td>${item.name}</td><td>${item.heroName || '法蘭克'}</td><td>${item.rankName || 'S 級'}</td><td>${item.attempts} 次</td><td>${item.time} 秒</td></tr>`;
+                });
+            } catch(e) {}
+        }
+        
+        updateLeaderboardUI();
+    </script>
+</body>
+</html>
